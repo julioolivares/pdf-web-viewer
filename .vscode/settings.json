@@ -1,0 +1,18 @@
+{
+  "editor.autoClosingBrackets": "always",
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "files.autoSave": "afterDelay",
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
+  "terminal.integrated.defaultProfile.linux": "bash",
+  "terminal.integrated.defaultProfile.osx": "bash",
+  "files.autoSaveDelay": 1000,
+  "cSpell.words": [],
+  "cSpell.language": "es,en",
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/docs": true,
+    "**/resources": true
+  }
+}
