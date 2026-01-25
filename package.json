@@ -29,7 +29,21 @@
     "build:pack": "cp -rf ./web/ build/ dist/",
     "dev": "live-server --port=6789 --open=./index.html --watch=dist"
   },
-  "keywords": [],
+  "keywords": [
+    "pdf",
+    "pdf.js",
+    "viewer",
+    "web",
+    "pdf-viewer",
+    "pdf preview",
+    "javascript",
+    "iframe",
+    "document viewer",
+    "pdf web viewer",
+    "pdfjs",
+    "embed pdf",
+    "pdf-web-viewer"
+  ],
   "author": "",
   "license": "ISC",
   "packageManager": "pnpm@10.24.0",
