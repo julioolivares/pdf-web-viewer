@@ -1,0 +1,47 @@
+{
+  "name": "pdf-web-viewer",
+  "version": "1.0.0",
+  "description": "PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for simple PDF previews in web apps. The project exposes a small API to create a viewer instance and mount it into your page.",
+  "main": "dist/index.umd.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.umd.js",
+      "default": "./dist/index.umd.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist/**",
+    "web/**",
+    "build/**",
+    "index.html",
+    "package.json",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "rm -rf dist && rollup -c rollup.config.js --environment NODE_ENV:production && pnpm build:pack",
+    "build:dev": "rm -rf dist && rollup -c rollup.config.js --environment NODE_ENV:development && pnpm build:pack",
+    "build:pack": "cp -rf ./web/ build/ dist/",
+    "dev": "live-server --port=6789 --open=./index.html --watch=dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.24.0",
+  "devDependencies": {
+    "@rollup/plugin-terser": "0.4.4",
+    "@rollup/plugin-typescript": "12.3.0",
+    "@types/node": "22.13.14",
+    "live-server": "1.2.2",
+    "prettier": "3.8.0",
+    "rollup": "4.56.0",
+    "rollup-plugin-dts": "6.3.0",
+    "tslib": "2.8.1",
+    "typescript": "5.9.3"
+  }
+}
