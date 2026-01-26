@@ -32,7 +32,7 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
      width: "800px",
      height: "600px",
    });
-   pdfViewer.mount(document.querySelector(".pdf-container"));
+   pdfViewer.mount(document.querySelector("div.pdf-container"));
    ```
 
    #### Non-ESM Projects (UMD)
@@ -44,7 +44,7 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
    <script>
      window.onload = function () {
        const pdfViewer = PdfViewer.create("/assets/sample.pdf");
-       pdfViewer.mount(document.querySelector(".pdf-container"));
+       pdfViewer.mount(document.querySelector("div.pdf-container"));
      };
    </script>
    ```
@@ -67,14 +67,6 @@ Creates a viewer instance and returns it. The instance exposes the `mount` and `
 
 - `setFile(filePath: string): void`
   - Updates the viewer to load a new PDF. The `filePath` must be provided and must end with `.pdf`, otherwise an `Error` is thrown.
-
-## Implementation details & caveats
-
-- The viewer loads the official PDF.js viewer page from `./web/viewer.html` by setting the iframe `src` to `./web/viewer.html?file=${encodeURIComponent(filePath)}`. That means consumers must ensure the `web/` folder (and its assets) are served relative to the page that uses the library, or adjust the packaging so that `web/viewer.html` is reachable at that path.
-
-- Cross-origin / CORS: If `filePath` points to a remote PDF hosted on another domain, the remote host must provide the appropriate CORS headers for PDF.js to fetch it. If you encounter CORS issues, serve the PDF from the same origin or proxy the request.
-
-- The created `iframe` sets `loading=\"lazy\"` and `allow=\"fullscreen\"` and has no border.
 
 ## Error handling
 

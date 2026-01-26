@@ -44,8 +44,16 @@
     "embed pdf",
     "pdf-web-viewer"
   ],
-  "author": "",
+  "author": "Julio Olivares Tejeda <julioolivarestejeda@gmail.com>",
   "license": "ISC",
+  "repository": {
+    "url": "git+https://github.com/julioolivares/pdf-web-viewer.git",
+    "type": "git"
+  },
+  "homepage": "https://github.com/julioolivares/pdf-web-viewer#readme",
+  "bugs": {
+    "url": "https://github.com/julioolivares/pdf-web-viewer/issues"
+  },
   "packageManager": "pnpm@10.24.0",
   "devDependencies": {
     "@rollup/plugin-terser": "0.4.4",
