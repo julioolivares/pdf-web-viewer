@@ -35,17 +35,8 @@ class PdfWebViewer {
      */
     private static resolveViewerBase(): string {
 
-        const currentScript = document.currentScript as HTMLScriptElement | null;
-        if (currentScript && currentScript.src) {
-            try {
-                if (currentScript.src.includes('/node_modules/pdf-web-viewer/')) {
-                    return new URL('../dist/web/viewer.html', currentScript.src).href;
-                }
-                return `${location.origin}/node_modules/pdf-web-viewer/dist/web/viewer.html`;
-            } catch (err) {
-            }
-        }
-        return './dist/web/viewer.html';
+        return `${location.origin}/node_modules/pdf-web-viewer/dist/web/viewer.html`;
+
     }
 
 
