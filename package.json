@@ -16,9 +16,6 @@
   },
   "files": [
     "dist/**",
-    "web/**",
-    "build/**",
-    "index.html",
     "package.json",
     "README.md"
   ],
