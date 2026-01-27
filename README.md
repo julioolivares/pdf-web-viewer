@@ -35,7 +35,7 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
    pdfViewer.mount(document.querySelector("div.pdf-container"));
    ```
 
-   #### Non-ESM Projects (UMD)
+   #### Non-ESM Projects
 
    If you build a UMD bundle that exposes a `PdfViewer` global, use it like:
 
