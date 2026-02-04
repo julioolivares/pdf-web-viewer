@@ -25,14 +25,14 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
    #### ESM Projects
 
    ```js
-   import { create } from "pdf-web-viewer";
+   import { create } from 'pdf-web-viewer'
 
    // filePath must point to a .pdf file (see notes below)
-   const pdfViewer = create("/assets/sample.pdf", {
-     width: "800px",
-     height: "600px",
-   });
-   pdfViewer.mount(document.querySelector("div.pdf-container"));
+   const pdfViewer = create('/assets/sample.pdf', {
+     width: '800px',
+     height: '600px',
+   })
+   pdfViewer.mount(document.querySelector('div.pdf-container'))
    ```
 
    #### Non-ESM Projects
@@ -43,11 +43,15 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
    <script src="node_modules/pdf-web-viewer/dist/index.umd.js"></script>
    <script>
      window.onload = function () {
-       const pdfViewer = PdfViewer.create("/assets/sample.pdf");
-       pdfViewer.mount(document.querySelector("div.pdf-container"));
-     };
+       const pdfViewer = PdfViewer.create('/assets/sample.pdf')
+       pdfViewer.mount(document.querySelector('div.pdf-container'))
+     }
    </script>
    ```
+
+## 🎥 Gif Demo
+
+![Demo](fixtures/videopdf-web-viewer-ezgif.com-video-to-gif-converter.gif)
 
 ## 🛠️ API Overview
 
