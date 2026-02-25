@@ -27,12 +27,18 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
    ```js
    import { create } from 'pdf-web-viewer'
 
-   // filePath must point to a .pdf file (see notes below)
-   const pdfViewer = create('/assets/sample.pdf', {
-     width: '800px',
-     height: '600px',
+   const container = document.querySelector('div.pdf-container')
+
+   // Option A: relative path (resolved against location.origin)
+   const viewer = create('/assets/sample.pdf', { width: '800px', height: '600px' })
+   viewer.mount(container)
+
+   // Option B: absolute URL
+   const viewer = create('https://example.com/files/document.pdf', {
+     width: '100%',
+     height: '100%',
    })
-   pdfViewer.mount(document.querySelector('div.pdf-container'))
+   viewer.mount(container)
    ```
 
    #### Non-ESM Projects
@@ -43,11 +49,18 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
    <script src="node_modules/pdf-web-viewer/dist/index.umd.js"></script>
    <script>
      window.onload = function () {
-       const pdfViewer = PdfViewer.create('/assets/sample.pdf')
-       pdfViewer.mount(document.querySelector('div.pdf-container'))
+       // Accepts a relative path or an absolute URL (http/https)
+       const viewer = PdfViewer.create('/assets/sample.pdf')
+       viewer.mount(document.querySelector('div.pdf-container'))
      }
    </script>
    ```
+
+## ▶️ Live Demo
+
+Try it instantly — no setup required:
+
+> **[Open in CodeSandbox →](https://codesandbox.io/p/devbox/elastic-sea-l2lzml)**
 
 ## 🎥 Gif Demo
 
@@ -55,27 +68,35 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
 
 ## 🛠️ API Overview
 
-### `create(filePath: string, options?: { width?: string; height?: string }): PdfWebViewer`
+### `create(filePath: string, options?: { width?: string; height?: string; displayPagePanel?: boolean }): PdfWebViewer`
 
 Creates a viewer instance and returns it. The instance exposes the `mount` and `setFile` methods.
 
-- `filePath` (string): URL or path to the PDF file to display. The implementation currently validates that the path ends with `.pdf` (case-insensitive) and will throw an `Error` otherwise.
+- `filePath` (string): Path or URL of the PDF file to display. Two formats are accepted:
+  - **Relative path** — e.g. `'/assets/sample.pdf'`. Resolved to an absolute URL using `location.origin`.
+  - **Absolute URL** — e.g. `'https://example.com/files/document.pdf'`. Used directly (URL-encoded before being passed to the viewer).
+
+  The value must end with `.pdf` (case-insensitive), otherwise an `Error` is thrown.
+
 - `options` (optional):
-  - `width` (string) — iframe width; default: `100%`.
-  - `height` (string) — iframe height; default: `100%`.
+  - `width` (string) — width of the PDF viewer; default: `100%`.
+  - `height` (string) — height of the PDF viewer; default: `100%`.
+  - `displayPagePanel` (boolean) — when `true`, opens the viewer with the thumbnail panel visible; default: `false`.
 
 #### Methods
 
 - `mount(targetElement: HTMLElement): void`
-  - Appends the viewer `iframe` into `targetElement`. Throws an `Error` if the `targetElement` is not provided.
+  - Adds the PDF viewer into `targetElement`. Throws an `Error` if `targetElement` is not provided.
 
 - `setFile(filePath: string): void`
-  - Updates the viewer to load a new PDF. The `filePath` must be provided and must end with `.pdf`, otherwise an `Error` is thrown.
+  - Updates the viewer to load a new PDF. Accepts the same relative paths and absolute URLs (`http`/`https`) as `create`. The `filePath` must be provided and must end with `.pdf`, otherwise an `Error` is thrown.
 
 ## Error handling
 
 - `create` and `setFile` will throw an `Error` if the provided `filePath` is missing or does not end with `.pdf`.
 - `mount` will throw if a valid mount target is not provided.
+
+> **Note on CORS:** when using absolute URLs pointing to a different origin, the remote server must allow cross-origin requests, otherwise the browser will block the PDF from loading.
 
 ## 📚 Additional resources
 
