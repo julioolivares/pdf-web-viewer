@@ -71,7 +71,6 @@ class PdfWebViewer {
     const base = PdfWebViewer.resolveViewerBase()
     const resolvedFile = PdfWebViewer.resolveFilePath(filePath)
 
-    console.log('Viewer URL:', `${base}?file=${resolvedFile}${displayPagePanel ? '#pagemode=thumbs' : '#pagemode=none'}`)
     return `${base}?file=${resolvedFile}${displayPagePanel ? '#pagemode=thumbs' : '#pagemode=none'}`
   }
 
