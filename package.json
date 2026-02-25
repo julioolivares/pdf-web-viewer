@@ -23,7 +23,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "rm -rf dist && rollup -c rollup.config.js --environment NODE_ENV:production && pnpm build:pack && pnpm build:cp",
-    "build:dev": "rm -rf dist && rollup -c rollup.config.js --environment NODE_ENV:development && pnpm build:pack",
+    "build:dev": "rm -rf dist && rollup -c rollup.config.js --environment NODE_ENV:development && pnpm build:pack && pnpm build:cp",
     "build:pack": "cp -rf ./web/ build/ dist/",
     "build:cp": "cp -rf web/ build/ dist/ ./node_modules/pdf-web-viewer",
     "dev": "live-server --port=6789 --open=./index.html --watch=dist",

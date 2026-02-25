@@ -22,6 +22,12 @@ class PdfWebViewer {
 
   private loadingIndicator: ReturnType<typeof createLoading>
 
+  private options = {
+    displayPagePanel: false,
+    width: '100%',
+    height: '100%'
+  }
+
   /**
    * Iframe instance where the PDF viewer is loaded.
    * @type {HTMLIFrameElement}
@@ -61,10 +67,12 @@ class PdfWebViewer {
    * @returns {string} Viewer URL with the PDF loaded
    * @private
    */
-  private static viewerUrlFor(filePath: string): string {
+  private static viewerUrlFor(filePath: string, displayPagePanel: boolean = false): string {
     const base = PdfWebViewer.resolveViewerBase()
     const resolvedFile = PdfWebViewer.resolveFilePath(filePath)
-    return `${base}?file=${resolvedFile}`
+
+    console.log('Viewer URL:', `${base}?file=${resolvedFile}${displayPagePanel ? '#pagemode=thumbs' : '#pagemode=none'}`)
+    return `${base}?file=${resolvedFile}${displayPagePanel ? '#pagemode=thumbs' : '#pagemode=none'}`
   }
 
   private async onMount(targetElement: HTMLElement) {
@@ -101,16 +109,17 @@ class PdfWebViewer {
    * @param {string} [options.height='100%'] - Height of the iframe.
    * @private
    */
-  private constructor(filePath: string, options?: { width?: string; height?: string }) {
+  private constructor(filePath: string, options?: { width?: string; height?: string, displayPagePanel?: boolean }) {
     if (!/\.pdf($|[?#])/i.test(filePath)) {
       throw new Error('Only PDF files are supported.')
     }
-    const width = options?.width || '100%'
-    const height = options?.height || '100%'
+    this.options.width = options?.width ?? '100%'
+    this.options.height = options?.height ?? '100%'
+    this.options.displayPagePanel = options?.displayPagePanel ?? this.options.displayPagePanel
     this.iframeInstance = document.createElement('iframe')
-    this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath)
-    this.iframeInstance.style.width = width
-    this.iframeInstance.style.height = height
+    this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath, this.options.displayPagePanel)
+    this.iframeInstance.style.width = this.options.width
+    this.iframeInstance.style.height = this.options.height
     this.iframeInstance.style.border = 'none'
     this.iframeInstance.loading = 'lazy'
     this.iframeInstance.allow = 'fullscreen'
@@ -125,11 +134,12 @@ class PdfWebViewer {
    * @param {Object} [options] - Optional settings for the viewer.
    * @param {string} [options.width='100%'] - Width of the iframe.
    * @param {string} [options.height='100%'] - Height of the iframe.
+   * @param {boolean} [options.displayPagePanel=false] - Whether to display the page panel. 
    * @returns {PdfWebViewer} Instance of PdfWebViewer.
    */
   static getInstance(
     filePath: string,
-    options?: { width?: string; height?: string }
+    options?: { width?: string; height?: string, displayPagePanel?: boolean }
   ): PdfWebViewer {
     this.instance = new PdfWebViewer(filePath, options)
     return this.instance
@@ -169,7 +179,7 @@ class PdfWebViewer {
     if (!/\.pdf($|[?#])/i.test(filePath)) {
       throw new Error('Only PDF files are supported.')
     }
-    this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath)
+    this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath, this.options.displayPagePanel)
   }
 }
 

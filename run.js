@@ -1,4 +1,4 @@
-const visorPdf = PdfViewer.create("pdf-place-holder/Placeholder-PDF.pdf");
+const visorPdf = PdfViewer.create("pdf-place-holder/Placeholder-PDF.pdf", { displayPagePanel: true });
 
 window.onload = () => {
 
