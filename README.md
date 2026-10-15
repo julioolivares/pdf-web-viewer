@@ -60,7 +60,22 @@ PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for si
 
 Try it instantly — no setup required:
 
-> **[Open in CodeSandbox →](https://codesandbox.io/p/devbox/elastic-sea-l2lzml)**
+> **[Open the playground →](https://julioolivares.github.io/pdf-web-viewer/)**
+
+The playground lives in the self-contained [`example/`](example/) folder (page, sample PDF and a prebuilt copy of the library in `example/lib/`). It is deployed as-is to GitHub Pages by [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
+
+To run it locally:
+
+```bash
+pnpm install
+pnpm dev:example   # serves ./example at http://localhost:6790
+```
+
+After changing the library, refresh the prebuilt copy and commit it:
+
+```bash
+pnpm build:example
+```
 
 ## 🎥 Gif Demo
 
@@ -68,7 +83,7 @@ Try it instantly — no setup required:
 
 ## 🛠️ API Overview
 
-### `create(filePath: string, options?: { width?: string; height?: string; displayPagePanel?: boolean }): PdfWebViewer`
+### `create(filePath: string, options?: { width?: string; height?: string; displayPagePanel?: boolean; viewerPath?: string }): PdfWebViewer`
 
 Creates a viewer instance and returns it. The instance exposes the `mount` and `setFile` methods.
 
@@ -82,6 +97,13 @@ Creates a viewer instance and returns it. The instance exposes the `mount` and `
   - `width` (string) — width of the PDF viewer; default: `100%`.
   - `height` (string) — height of the PDF viewer; default: `100%`.
   - `displayPagePanel` (boolean) — when `true`, opens the viewer with the thumbnail panel visible; default: `false`.
+  - `viewerPath` (string) — path or URL of the bundled PDF.js `viewer.html`. Relative paths are resolved against `document.baseURI`. Use it when the files are not served from `/node_modules/pdf-web-viewer/dist/web/viewer.html` at the site root (e.g. a GitHub Pages project site or a production bundle); default: `` `${location.origin}/node_modules/pdf-web-viewer/dist/web/viewer.html` ``. The viewer must be served from the same origin as the PDF.
+
+    ```js
+    const viewer = create(new URL('assets/sample.pdf', document.baseURI).href, {
+      viewerPath: 'vendor/pdf-web-viewer/web/viewer.html',
+    })
+    ```
 
 #### Methods
 

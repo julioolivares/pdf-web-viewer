@@ -22,7 +22,7 @@ class PdfWebViewer {
 
   private loadingIndicator: ReturnType<typeof createLoading>
 
-  private options = {
+  private options: { displayPagePanel: boolean; width: string; height: string; viewerPath?: string } = {
     displayPagePanel: false,
     width: '100%',
     height: '100%'
@@ -36,11 +36,18 @@ class PdfWebViewer {
   private iframeInstance: HTMLIFrameElement
 
   /**
-   * Resolves the base path for the PDF.js viewer (viewer.html) based on the current script location.
+   * Resolves the URL of the PDF.js viewer (viewer.html).
+   * By default it points to `node_modules/pdf-web-viewer/dist/web/viewer.html` at `location.origin`.
+   * A custom `viewerPath` is resolved against `document.baseURI`, so relative paths work
+   * when the page is not served from the domain root (e.g. GitHub Pages project sites).
+   * @param {string} [viewerPath] - Custom path or URL of viewer.html
    * @returns {string} Absolute URL to the viewer.html
    * @private
    */
-  private static resolveViewerBase(): string {
+  private static resolveViewerBase(viewerPath?: string): string {
+    if (viewerPath) {
+      return new URL(viewerPath, document.baseURI).href
+    }
     return `${location.origin}/node_modules/pdf-web-viewer/dist/web/viewer.html`
   }
 
@@ -64,11 +71,13 @@ class PdfWebViewer {
   /**
    * Builds the complete viewer URL with the PDF file as a parameter.
    * @param {string} filePath - Path or URL of the PDF file
+   * @param {boolean} [displayPagePanel=false] - Whether to display the page panel
+   * @param {string} [viewerPath] - Custom path or URL of viewer.html
    * @returns {string} Viewer URL with the PDF loaded
    * @private
    */
-  private static viewerUrlFor(filePath: string, displayPagePanel: boolean = false): string {
-    const base = PdfWebViewer.resolveViewerBase()
+  private static viewerUrlFor(filePath: string, displayPagePanel: boolean = false, viewerPath?: string): string {
+    const base = PdfWebViewer.resolveViewerBase(viewerPath)
     const resolvedFile = PdfWebViewer.resolveFilePath(filePath)
 
     return `${base}?file=${resolvedFile}${displayPagePanel ? '#pagemode=thumbs' : '#pagemode=none'}`
@@ -106,17 +115,20 @@ class PdfWebViewer {
    * @param {Object} [options] - Optional settings for the viewer.
    * @param {string} [options.width='100%'] - Width of the iframe.
    * @param {string} [options.height='100%'] - Height of the iframe.
+   * @param {boolean} [options.displayPagePanel=false] - Whether to display the page panel.
+   * @param {string} [options.viewerPath] - Custom path or URL of the PDF.js viewer.html.
    * @private
    */
-  private constructor(filePath: string, options?: { width?: string; height?: string, displayPagePanel?: boolean }) {
+  private constructor(filePath: string, options?: { width?: string; height?: string, displayPagePanel?: boolean, viewerPath?: string }) {
     if (!/\.pdf($|[?#])/i.test(filePath)) {
       throw new Error('Only PDF files are supported.')
     }
     this.options.width = options?.width ?? '100%'
     this.options.height = options?.height ?? '100%'
     this.options.displayPagePanel = options?.displayPagePanel ?? this.options.displayPagePanel
+    this.options.viewerPath = options?.viewerPath
     this.iframeInstance = document.createElement('iframe')
-    this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath, this.options.displayPagePanel)
+    this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath, this.options.displayPagePanel, this.options.viewerPath)
     this.iframeInstance.style.width = this.options.width
     this.iframeInstance.style.height = this.options.height
     this.iframeInstance.style.border = 'none'
@@ -134,11 +146,12 @@ class PdfWebViewer {
    * @param {string} [options.width='100%'] - Width of the iframe.
    * @param {string} [options.height='100%'] - Height of the iframe.
    * @param {boolean} [options.displayPagePanel=false] - Whether to display the page panel. 
+   * @param {string} [options.viewerPath] - Custom path or URL of the PDF.js viewer.html.
    * @returns {PdfWebViewer} Instance of PdfWebViewer.
    */
   static getInstance(
     filePath: string,
-    options?: { width?: string; height?: string, displayPagePanel?: boolean }
+    options?: { width?: string; height?: string, displayPagePanel?: boolean, viewerPath?: string }
   ): PdfWebViewer {
     this.instance = new PdfWebViewer(filePath, options)
     return this.instance
@@ -178,7 +191,7 @@ class PdfWebViewer {
     if (!/\.pdf($|[?#])/i.test(filePath)) {
       throw new Error('Only PDF files are supported.')
     }
-    this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath, this.options.displayPagePanel)
+    this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath, this.options.displayPagePanel, this.options.viewerPath)
   }
 }
 
