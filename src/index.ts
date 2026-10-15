@@ -22,7 +22,7 @@ class PdfWebViewer {
 
   private loadingIndicator: ReturnType<typeof createLoading>
 
-  private options: { displayPagePanel: boolean; width: string; height: string; viewerPath?: string } = {
+  private options: { displayPagePanel: boolean; width: string; height: string; viewerPath?: string; locale?: string } = {
     displayPagePanel: false,
     width: '100%',
     height: '100%'
@@ -117,9 +117,10 @@ class PdfWebViewer {
    * @param {string} [options.height='100%'] - Height of the iframe.
    * @param {boolean} [options.displayPagePanel=false] - Whether to display the page panel.
    * @param {string} [options.viewerPath] - Custom path or URL of the PDF.js viewer.html.
+   * @param {string} [options.locale] - Language of the viewer UI (e.g. 'es-ES'). Defaults to the browser language.
    * @private
    */
-  private constructor(filePath: string, options?: { width?: string; height?: string, displayPagePanel?: boolean, viewerPath?: string }) {
+  private constructor(filePath: string, options?: { width?: string; height?: string, displayPagePanel?: boolean, viewerPath?: string, locale?: string }) {
     if (!/\.pdf($|[?#])/i.test(filePath)) {
       throw new Error('Only PDF files are supported.')
     }
@@ -127,6 +128,7 @@ class PdfWebViewer {
     this.options.height = options?.height ?? '100%'
     this.options.displayPagePanel = options?.displayPagePanel ?? this.options.displayPagePanel
     this.options.viewerPath = options?.viewerPath
+    this.options.locale = options?.locale
     this.iframeInstance = document.createElement('iframe')
     this.iframeInstance.src = PdfWebViewer.viewerUrlFor(filePath, this.options.displayPagePanel, this.options.viewerPath)
     this.iframeInstance.style.width = this.options.width
@@ -137,6 +139,24 @@ class PdfWebViewer {
     this.iframeInstance.id = `pdf_${Utils.generateUUID()}`
 
     this.loadingIndicator = createLoading()
+
+    if (this.options.locale) {
+      document.addEventListener('webviewerloaded', this.onViewerLoaded)
+    }
+  }
+
+  /**
+   * Applies the configured locale before the PDF.js viewer initializes.
+   * The viewer dispatches `webviewerloaded` on the parent document (same origin only),
+   * which is the only point where `localeProperties` can still be changed.
+   * @param {Event} event - The `webviewerloaded` event.
+   * @private
+   */
+  private onViewerLoaded = (event: Event): void => {
+    const source = (event as CustomEvent<{ source: any }>).detail?.source
+    if (!source || source !== this.iframeInstance.contentWindow) return
+
+    source.PDFViewerApplicationOptions?.set('localeProperties', { lang: this.options.locale })
   }
 
   /**
@@ -147,11 +167,12 @@ class PdfWebViewer {
    * @param {string} [options.height='100%'] - Height of the iframe.
    * @param {boolean} [options.displayPagePanel=false] - Whether to display the page panel. 
    * @param {string} [options.viewerPath] - Custom path or URL of the PDF.js viewer.html.
+   * @param {string} [options.locale] - Language of the viewer UI (e.g. 'es-ES'). Defaults to the browser language.
    * @returns {PdfWebViewer} Instance of PdfWebViewer.
    */
   static getInstance(
     filePath: string,
-    options?: { width?: string; height?: string, displayPagePanel?: boolean, viewerPath?: string }
+    options?: { width?: string; height?: string, displayPagePanel?: boolean, viewerPath?: string, locale?: string }
   ): PdfWebViewer {
     this.instance = new PdfWebViewer(filePath, options)
     return this.instance

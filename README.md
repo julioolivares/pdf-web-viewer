@@ -83,7 +83,7 @@ pnpm build:example
 
 ## 🛠️ API Overview
 
-### `create(filePath: string, options?: { width?: string; height?: string; displayPagePanel?: boolean; viewerPath?: string }): PdfWebViewer`
+### `create(filePath: string, options?: { width?: string; height?: string; displayPagePanel?: boolean; viewerPath?: string; locale?: string }): PdfWebViewer`
 
 Creates a viewer instance and returns it. The instance exposes the `mount` and `setFile` methods.
 
@@ -103,6 +103,12 @@ Creates a viewer instance and returns it. The instance exposes the `mount` and `
     const viewer = create(new URL('assets/sample.pdf', document.baseURI).href, {
       viewerPath: 'vendor/pdf-web-viewer/web/viewer.html',
     })
+    ```
+
+  - `locale` (string) — language of the viewer UI (toolbar, menus, tooltips), e.g. `'es-ES'`, `'fr'`, `'de'`. Must match one of the folders in `web/locale/`; unknown values fall back to English. Default: the browser language (`navigator.language`).
+
+    ```js
+    const viewer = create('/assets/sample.pdf', { locale: 'es-ES' })
     ```
 
 #### Methods
