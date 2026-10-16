@@ -1,4 +1,9 @@
 /**
+ * A PDF to display: a path or URL ending with `.pdf`, a `Blob`, an `ArrayBuffer` or a `Uint8Array`.
+ */
+type PdfSource = string | Blob | ArrayBuffer | Uint8Array;
+
+/**
  * Languages bundled with the PDF.js viewer (folders in `web/locale/`).
  */
 type Locale = 'ach' | 'af' | 'an' | 'ar' | 'ast' | 'az' | 'be' | 'bg' | 'bn' | 'bo' | 'bqi' | 'br' | 'brx' | 'bs' | 'ca' | 'cak' | 'ckb' | 'cs' | 'cy' | 'da' | 'de' | 'dsb' | 'el' | 'en-CA' | 'en-GB' | 'en-US' | 'eo' | 'es-AR' | 'es-CL' | 'es-ES' | 'es-MX' | 'et' | 'eu' | 'fa' | 'ff' | 'fi' | 'fr' | 'fur' | 'fy-NL' | 'ga-IE' | 'gd' | 'gl' | 'gn' | 'gu-IN' | 'he' | 'hi-IN' | 'hr' | 'hsb' | 'hu' | 'hy-AM' | 'hye' | 'ia' | 'id' | 'is' | 'it' | 'ja' | 'ka' | 'kab' | 'kk' | 'km' | 'kn' | 'ko' | 'lij' | 'lo' | 'lt' | 'ltg' | 'lv' | 'meh' | 'mk' | 'ml' | 'mr' | 'ms' | 'my' | 'nb-NO' | 'ne-NP' | 'nl' | 'nn-NO' | 'oc' | 'pa-IN' | 'pl' | 'pt-BR' | 'pt-PT' | 'rm' | 'ro' | 'ru' | 'sat' | 'sc' | 'scn' | 'sco' | 'si' | 'sk' | 'skr' | 'sl' | 'son' | 'sq' | 'sr' | 'sv-SE' | 'szl' | 'ta' | 'te' | 'tg' | 'th' | 'tl' | 'tr' | 'trs' | 'uk' | 'ur' | 'uz' | 'vi' | 'wo' | 'xh' | 'zh-CN' | 'zh-TW';
@@ -27,9 +32,11 @@ interface SearchOptions {
  * Only the members used most often are typed; see the PDF.js source for the rest.
  */
 interface PdfViewerApplication {
-    /** Opens a new document in the running viewer. */
+    /** Opens a new document in the running viewer. Takes PDF.js `getDocument` parameters. */
     open(args: {
-        url: string;
+        url?: string;
+        data?: Uint8Array;
+        httpHeaders?: Record<string, string>;
     } & Record<string, any>): Promise<void>;
     /** Current page number (1-based). */
     page: number;
@@ -154,6 +161,12 @@ declare class PdfWebViewer {
      */
     private pendingFile;
     /**
+     * File to open once the viewer initializes, when it cannot be passed in the viewer URL
+     * (bytes). The viewer then starts empty.
+     * @private
+     */
+    private initialFile;
+    /**
      * Resolves the URL of the PDF.js viewer (viewer.html).
      * By default it points to `node_modules/pdf-web-viewer/dist/web/viewer.html` at `location.origin`.
      * A custom `viewerPath` is resolved against `document.baseURI`, so relative paths work
@@ -164,20 +177,6 @@ declare class PdfWebViewer {
      */
     private static resolveViewerBase;
     /**
-     * Resolves the path of the PDF file to display to an absolute URL.
-     * Absolute http(s) URLs are kept; other paths are resolved from the site root.
-     * @param {string} filePath - Path or URL of the PDF file
-     * @returns {string} Absolute URL of the PDF file
-     * @private
-     */
-    private static resolveFileUrl;
-    /**
-     * Throws when `filePath` is missing or is not a PDF.
-     * @param {string} filePath - Path or URL of the PDF file
-     * @private
-     */
-    private static assertPdf;
-    /**
      * Builds the PDF.js hash parameters (page, zoom and page panel) applied when a document opens.
      * @param {boolean} includePage - Whether to include the initial `page` option.
      * @returns {string} Hash parameters without the leading `#`
@@ -186,11 +185,27 @@ declare class PdfWebViewer {
     private viewHash;
     /**
      * Builds the complete viewer URL with the PDF file as a parameter.
-     * @param {string} fileUrl - Absolute URL of the PDF file
+     * @param {string} fileUrl - Absolute URL of the PDF file, or `''` to start the viewer empty
      * @returns {string} Viewer URL with the PDF loaded
      * @private
      */
     private viewerUrlFor;
+    /**
+     * Points the iframe at the viewer for the first file. A plain URL goes in the viewer URL;
+     * otherwise the viewer starts empty and `onViewerLoaded` opens the file.
+     * @param {ResolvedSource} file - The file to open
+     * @private
+     */
+    private setInitialFile;
+    /**
+     * Opens a file in the running viewer and waits for its first page.
+     * @param {PdfViewerApplication} app - The initialized viewer application.
+     * @param {ResolvedSource} file - The file to open
+     * @param {boolean} includePage - Whether to apply the initial `page` option.
+     * @param {number} loadId - The load this file belongs to; a newer one cancels it.
+     * @private
+     */
+    private openFile;
     /**
      * Starts waiting for a new `PDFViewerApplication` (first load or iframe reload).
      * @private
@@ -198,7 +213,7 @@ declare class PdfWebViewer {
     private resetApp;
     /**
      * Private constructor. Initializes the iframe with the provided PDF file and options.
-     * @param {string} filePath - Path or URL of the PDF file to display.
+     * @param {PdfSource} source - The PDF file to display.
      * @param {PdfWebViewerOptions} [options] - Optional settings for the viewer.
      * @private
      */
@@ -249,11 +264,12 @@ declare class PdfWebViewer {
     private requireDocument;
     /**
      * Creates a viewer for the given PDF.
-     * @param {string} filePath - Path or URL of the PDF file to display.
+     * @param {PdfSource} source - Path or URL of the PDF file, a `Blob` or its bytes
+     * (`ArrayBuffer`/`Uint8Array`).
      * @param {PdfWebViewerOptions} [options] - Optional settings for the viewer.
      * @returns {PdfWebViewer} Instance of PdfWebViewer.
      */
-    static getInstance(filePath: string, options?: PdfWebViewerOptions): PdfWebViewer;
+    static getInstance(source: PdfSource, options?: PdfWebViewerOptions): PdfWebViewer;
     /**
      * Mounts (inserts) the PDF viewer inside a target HTML element.
      *
@@ -265,11 +281,11 @@ declare class PdfWebViewer {
      * Changes the PDF file displayed in the viewer. The running viewer opens the new file
      * without reloading; if the viewer is served from another origin, the iframe is reloaded.
      *
-     * @param {string} filePath - New path or URL of the PDF file. Must end with .pdf
+     * @param {PdfSource} source - The new PDF file. Accepts the same values as `create`.
      * @returns {Promise<void>} Resolves when the file is loaded; rejects if it fails to load.
-     * @throws {Error} If a valid path is not provided or the file is not a PDF.
+     * @throws {Error} If a valid source is not provided or the file is not a PDF.
      */
-    setFile(filePath: string): Promise<void>;
+    setFile(source: PdfSource): Promise<void>;
     /**
      * Scrolls the viewer to a page.
      *
@@ -323,5 +339,5 @@ declare class PdfWebViewer {
 declare const create: typeof PdfWebViewer.getInstance;
 
 export { PdfWebViewer, create };
-export type { Locale, PdfViewerApplication, PdfWebViewerOptions, SearchOptions, Theme, Zoom };
+export type { Locale, PdfSource, PdfViewerApplication, PdfWebViewerOptions, SearchOptions, Theme, Zoom };
 export as namespace PdfViewer;

@@ -42,6 +42,17 @@
           this.viewers[id] = viewer
           return viewer
         },
+        // Fetches a PDF and returns it as `kind`, for the sources that cannot cross page.evaluate.
+        async source(kind, path) {
+          const blob = await (await fetch(path)).blob()
+          const bytes = new Uint8Array(await blob.arrayBuffer())
+          return {
+            file: () => new File([blob], path.split('/').pop(), { type: 'application/pdf' }),
+            blob: () => blob,
+            arrayBuffer: () => bytes.buffer,
+            uint8Array: () => bytes,
+          }[kind]()
+        },
       }
     </script>
   </body>

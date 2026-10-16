@@ -1,5 +1,7 @@
 import { Utils } from './utils.util'
 import { create as createLoading } from './loading'
+import { resolveSource, isPlainUrl, openArgs } from './source'
+import type { PdfSource, ResolvedSource } from './source'
 import type { Locale } from './locale'
 
 /**
@@ -29,8 +31,13 @@ export interface SearchOptions {
  * Only the members used most often are typed; see the PDF.js source for the rest.
  */
 export interface PdfViewerApplication {
-  /** Opens a new document in the running viewer. */
-  open(args: { url: string } & Record<string, any>): Promise<void>
+  /** Opens a new document in the running viewer. Takes PDF.js `getDocument` parameters. */
+  open(
+    args: { url?: string; data?: Uint8Array; httpHeaders?: Record<string, string> } & Record<
+      string,
+      any
+    >
+  ): Promise<void>
   /** Current page number (1-based). */
   page: number
   /** Number of pages of the open document (0 while loading). */
@@ -220,6 +227,13 @@ class PdfWebViewer {
   private pendingFile: Promise<void> = Promise.resolve()
 
   /**
+   * File to open once the viewer initializes, when it cannot be passed in the viewer URL
+   * (bytes). The viewer then starts empty.
+   * @private
+   */
+  private initialFile: ResolvedSource | null = null
+
+  /**
    * Resolves the URL of the PDF.js viewer (viewer.html).
    * By default it points to `node_modules/pdf-web-viewer/dist/web/viewer.html` at `location.origin`.
    * A custom `viewerPath` is resolved against `document.baseURI`, so relative paths work
@@ -233,36 +247,6 @@ class PdfWebViewer {
       return new URL(viewerPath, document.baseURI).href
     }
     return `${location.origin}/node_modules/pdf-web-viewer/dist/web/viewer.html`
-  }
-
-  /**
-   * Resolves the path of the PDF file to display to an absolute URL.
-   * Absolute http(s) URLs are kept; other paths are resolved from the site root.
-   * @param {string} filePath - Path or URL of the PDF file
-   * @returns {string} Absolute URL of the PDF file
-   * @private
-   */
-  private static resolveFileUrl(filePath: string): string {
-    const trimmed = filePath.trim()
-    const prefix = trimmed.toLowerCase()
-    if (prefix.startsWith('http:') || prefix.startsWith('https:')) {
-      return trimmed
-    }
-    return `${location.origin}${trimmed.startsWith('/') ? trimmed : '/' + trimmed}`
-  }
-
-  /**
-   * Throws when `filePath` is missing or is not a PDF.
-   * @param {string} filePath - Path or URL of the PDF file
-   * @private
-   */
-  private static assertPdf(filePath: string): void {
-    if (!filePath) {
-      throw new Error('Source PDF URL is required.')
-    }
-    if (!/\.pdf($|[?#])/i.test(filePath)) {
-      throw new Error('Only PDF files are supported.')
-    }
   }
 
   /**
@@ -281,13 +265,50 @@ class PdfWebViewer {
 
   /**
    * Builds the complete viewer URL with the PDF file as a parameter.
-   * @param {string} fileUrl - Absolute URL of the PDF file
+   * @param {string} fileUrl - Absolute URL of the PDF file, or `''` to start the viewer empty
    * @returns {string} Viewer URL with the PDF loaded
    * @private
    */
   private viewerUrlFor(fileUrl: string): string {
     const base = PdfWebViewer.resolveViewerBase(this.options.viewerPath)
     return `${base}?file=${encodeURIComponent(fileUrl)}#${this.viewHash(true)}`
+  }
+
+  /**
+   * Points the iframe at the viewer for the first file. A plain URL goes in the viewer URL;
+   * otherwise the viewer starts empty and `onViewerLoaded` opens the file.
+   * @param {ResolvedSource} file - The file to open
+   * @private
+   */
+  private setInitialFile(file: ResolvedSource): void {
+    const inUrl = isPlainUrl(file)
+    this.initialFile = inUrl ? null : file
+    this.iframeInstance.src = this.viewerUrlFor(inUrl ? file.url : '')
+  }
+
+  /**
+   * Opens a file in the running viewer and waits for its first page.
+   * @param {PdfViewerApplication} app - The initialized viewer application.
+   * @param {ResolvedSource} file - The file to open
+   * @param {boolean} includePage - Whether to apply the initial `page` option.
+   * @param {number} loadId - The load this file belongs to; a newer one cancels it.
+   * @private
+   */
+  private async openFile(
+    app: PdfViewerApplication,
+    file: ResolvedSource,
+    includePage: boolean,
+    loadId: number
+  ): Promise<void> {
+    const args = await openArgs(file)
+    if (this.isDestroyed || loadId !== this.loadId) return
+
+    app.initialBookmark = this.viewHash(includePage)
+    const loaded = nextDocumentEvent(app, 'documentloaded')
+    loaded.catch(() => {}) // `open` reports the same failure.
+    await app.open(args)
+    // `open` settles once the file is parsed; wait for its first page, like `onLoad`.
+    if (loadId === this.loadId) await loaded
   }
 
   /**
@@ -303,12 +324,12 @@ class PdfWebViewer {
 
   /**
    * Private constructor. Initializes the iframe with the provided PDF file and options.
-   * @param {string} filePath - Path or URL of the PDF file to display.
+   * @param {PdfSource} source - The PDF file to display.
    * @param {PdfWebViewerOptions} [options] - Optional settings for the viewer.
    * @private
    */
-  private constructor(filePath: string, options?: PdfWebViewerOptions) {
-    PdfWebViewer.assertPdf(filePath)
+  private constructor(source: PdfSource, options?: PdfWebViewerOptions) {
+    const file = resolveSource(source)
     this.options = {
       ...options,
       width: options?.width ?? '100%',
@@ -324,7 +345,7 @@ class PdfWebViewer {
     this.wrapper.style.height = this.options.height
 
     this.iframeInstance = document.createElement('iframe')
-    this.iframeInstance.src = this.viewerUrlFor(PdfWebViewer.resolveFileUrl(filePath))
+    this.setInitialFile(file)
     this.iframeInstance.style.display = 'block'
     this.iframeInstance.style.width = '100%'
     this.iframeInstance.style.height = '100%'
@@ -360,6 +381,12 @@ class PdfWebViewer {
       if (this.isDestroyed || source !== this.iframeInstance.contentWindow) return
       this.app = app
       this.bindEvents(app)
+      if (this.initialFile) {
+        const file = this.initialFile
+        this.initialFile = null
+        // Failures reach `onError` through the PDF.js `documenterror` event.
+        this.pendingFile = this.openFile(app, file, true, this.loadId).catch(() => {})
+      }
       this.resolveApp(app)
     })
   }
@@ -377,7 +404,13 @@ class PdfWebViewer {
       } catch {
         reachable = false
       }
-      if (!reachable) this.resolveApp(null)
+      if (!reachable) {
+        this.resolveApp(null)
+        if (this.initialFile) {
+          this.initialFile = null
+          this.options.onError?.(new Error(CROSS_ORIGIN_ERROR))
+        }
+      }
     }
 
     await new Promise((resolve) => setTimeout(resolve, 180))
@@ -468,12 +501,13 @@ class PdfWebViewer {
 
   /**
    * Creates a viewer for the given PDF.
-   * @param {string} filePath - Path or URL of the PDF file to display.
+   * @param {PdfSource} source - Path or URL of the PDF file, a `Blob` or its bytes
+   * (`ArrayBuffer`/`Uint8Array`).
    * @param {PdfWebViewerOptions} [options] - Optional settings for the viewer.
    * @returns {PdfWebViewer} Instance of PdfWebViewer.
    */
-  static getInstance(filePath: string, options?: PdfWebViewerOptions): PdfWebViewer {
-    PdfWebViewer.instance = new PdfWebViewer(filePath, options)
+  static getInstance(source: PdfSource, options?: PdfWebViewerOptions): PdfWebViewer {
+    PdfWebViewer.instance = new PdfWebViewer(source, options)
     return PdfWebViewer.instance
   }
 
@@ -503,41 +537,37 @@ class PdfWebViewer {
    * Changes the PDF file displayed in the viewer. The running viewer opens the new file
    * without reloading; if the viewer is served from another origin, the iframe is reloaded.
    *
-   * @param {string} filePath - New path or URL of the PDF file. Must end with .pdf
+   * @param {PdfSource} source - The new PDF file. Accepts the same values as `create`.
    * @returns {Promise<void>} Resolves when the file is loaded; rejects if it fails to load.
-   * @throws {Error} If a valid path is not provided or the file is not a PDF.
+   * @throws {Error} If a valid source is not provided or the file is not a PDF.
    */
-  public setFile(filePath: string): Promise<void> {
+  public setFile(source: PdfSource): Promise<void> {
     this.assertAlive()
-    PdfWebViewer.assertPdf(filePath)
-
-    const fileUrl = PdfWebViewer.resolveFileUrl(filePath)
+    const file = resolveSource(source)
 
     if (!this.isMounted) {
-      this.iframeInstance.src = this.viewerUrlFor(fileUrl)
+      this.setInitialFile(file)
       return Promise.resolve()
     }
 
+    this.initialFile = null
     const loadId = ++this.loadId
     this.loadingIndicator.show()
 
     const loading = this.appReady.then(async (app) => {
       if (this.isDestroyed || loadId !== this.loadId) return
 
-      if (!app) {
+      if (!app && isPlainUrl(file)) {
         // Cross-origin viewer: reload the iframe; `onIframeLoad` hides the indicator.
         this.resetApp()
-        this.iframeInstance.src = this.viewerUrlFor(fileUrl)
+        this.iframeInstance.src = this.viewerUrlFor(file.url)
         return
       }
 
-      app.initialBookmark = this.viewHash(false)
-      const loaded = nextDocumentEvent(app, 'documentloaded')
-      loaded.catch(() => {}) // `open` reports the same failure.
       try {
-        await app.open({ url: fileUrl })
-        // `open` settles once the file is parsed; wait for its first page, like `onLoad`.
-        if (loadId === this.loadId) await loaded
+        // Bytes can only be handed to a viewer on the same origin.
+        if (!app) throw new Error(CROSS_ORIGIN_ERROR)
+        await this.openFile(app, file, false, loadId)
       } finally {
         if (loadId === this.loadId) this.loadingIndicator.hide()
       }
@@ -658,4 +688,4 @@ class PdfWebViewer {
 const create = PdfWebViewer.getInstance
 
 export { create }
-export type { Locale, PdfWebViewer }
+export type { Locale, PdfSource, PdfWebViewer }

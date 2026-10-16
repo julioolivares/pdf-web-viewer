@@ -4,7 +4,8 @@ const HOST_FILE = 'demo.html'
 const TYPES_FILE = 'lib/index.d.ts'
 
 const HINTS = {
-  source: 'The real code of this example, exactly as it runs on this page. Hover over the API to see its docs.',
+  source:
+    'The real code of this example, exactly as it runs on this page. Hover over the API to see its docs. Use the file picker in the preview to open a PDF of your own.',
   edit: 'Edit the code with autocomplete from the library types (try the locale value), then press Run (Ctrl/⌘ + Enter).',
 }
 

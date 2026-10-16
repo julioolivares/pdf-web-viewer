@@ -63,13 +63,13 @@ const viewer = create('/assets/sample.pdf', {
 
 ## 🛠️ API
 
-### `create(filePath, options?)`
+### `create(source, options?)`
 
 Creates a viewer for the given PDF and returns a `PdfWebViewer` instance.
 
-- **`filePath`** (`string`) — the PDF to display. It must end with `.pdf`.
-  - **Relative path**, e.g. `'/assets/sample.pdf'`, resolved from your site root.
-  - **Absolute URL**, e.g. `'https://example.com/files/document.pdf'`. The server hosting it must allow CORS requests from your site.
+- **`source`** (`PdfSource`) — the PDF to display:
+  - **Path or URL** (`string`) ending with `.pdf`. A relative path such as `'/assets/sample.pdf'` is resolved from your site root. An absolute URL such as `'https://example.com/files/document.pdf'` needs a server that allows CORS requests from your site.
+  - **The PDF data**: a `Blob` (including a `File` from an `<input type="file">`), an `ArrayBuffer` or a `Uint8Array`.
 - **`options`** (`PdfWebViewerOptions`, optional):
 
 | Option             | Type      | Default                                               | Description                                                                                        |
@@ -97,13 +97,27 @@ const viewer = create('https://example.com/files/document.pdf', {
 })
 ```
 
+```js
+// File picked by the user
+create(fileInput.files[0])
+
+// Blob from a fetch response
+const response = await fetch('/api/reports/42')
+create(await response.blob())
+
+// Bytes returned by your API
+create(new Uint8Array(buffer))
+```
+
+The viewer reads the bytes you pass and leaves your buffer untouched. A `File` keeps its name for the download button.
+
 ### `viewer.mount(targetElement)`
 
 Inserts the viewer into `targetElement` (`HTMLElement`). Calling it again on a mounted viewer has no effect.
 
-### `viewer.setFile(filePath)`
+### `viewer.setFile(source)`
 
-Opens a different PDF in the running viewer, without reloading it. Accepts the same values as `filePath` in `create`. Returns a promise that resolves when the file is loaded and rejects if it fails to load.
+Opens a different PDF in the running viewer, without reloading it. Accepts the same values as `source` in `create`. Returns a promise that resolves when the file is loaded and rejects if it fails to load.
 
 ```js
 await viewer.setFile('/assets/another.pdf')
@@ -131,7 +145,7 @@ const app = await viewer.getApplication()
 app.eventBus.on('scalechanging', ({ scale }) => console.log(scale))
 ```
 
-These methods need the viewer files to be served from the same origin as your page, which is the case by default. With a `viewerPath` on another origin, `setFile` falls back to reloading the viewer and the other methods reject.
+These methods need the viewer files to be served from the same origin as your page, which is the case by default. With a `viewerPath` on another origin, `setFile` falls back to reloading the viewer and the other methods reject. Blob and byte sources (`Blob`, `ArrayBuffer`, `Uint8Array`) also need a viewer on the same origin: on another origin, `create` reports the error through `onError` and `setFile` rejects.
 
 ### `viewer.destroy()`
 
@@ -139,18 +153,19 @@ Removes the viewer from the page and releases its listeners. The instance cannot
 
 ### Errors
 
-- `create` and `setFile` throw an `Error` when `filePath` is missing or does not end with `.pdf`.
+- `create` and `setFile` throw an `Error` when `source` is missing, is a path that does not end with `.pdf` or has an unsupported type.
 - `mount` throws an `Error` when no target element is provided.
 - `goToPage` and `setZoom` reject with a `RangeError` for a page that does not exist or a zoom that is not positive.
 - Every method throws an `Error` after `destroy()`.
 
 ## 🧩 TypeScript
 
-Type declarations are included. Besides `create`, the package exports the option types:
+Type declarations are included. Besides `create`, the package exports the source and option types:
 
 ```ts
 import {
   create,
+  type PdfSource,
   type PdfWebViewerOptions,
   type Locale,
   type Zoom,

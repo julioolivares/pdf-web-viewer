@@ -5,20 +5,81 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PDF Web Viewer · Demo</title>
     <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #ffffff;
+        --text: #1f2328;
+        --muted: #59636e;
+        --border: #d1d9e0;
+        --button-bg: #f6f8fa;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #151b23;
+          --text: #e6edf3;
+          --muted: #9198a1;
+          --border: #3d444d;
+          --button-bg: #0d1117;
+        }
+      }
       html,
       body {
         margin: 0;
         height: 100%;
       }
+      body {
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 8px;
+        padding: 6px 12px;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        border-bottom: 1px solid var(--border);
+      }
+      .toolbar input {
+        min-width: 0;
+        max-width: 100%;
+        font: inherit;
+        color: var(--muted);
+      }
+      .toolbar input::file-selector-button {
+        margin-right: 8px;
+        padding: 3px 10px;
+        font: inherit;
+        font-weight: 500;
+        color: var(--text);
+        background: var(--button-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: pointer;
+      }
       .pdf-container {
+        flex: 1;
+        min-height: 0;
         width: 100%;
-        height: 100%;
       }
     </style>
     <script src="lib/index.umd.js"></script>
     <script src="run.js"></script>
   </head>
   <body>
+    <div class="toolbar">
+      <label for="pdf-file">Open your own PDF (optional):</label>
+      <input type="file" id="pdf-file" accept="application/pdf,.pdf" />
+    </div>
     <div class="pdf-container"></div>
   </body>
 </html>

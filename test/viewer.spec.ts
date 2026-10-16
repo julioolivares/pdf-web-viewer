@@ -14,7 +14,7 @@ const MISSING = '/test/fixtures/does-not-exist.pdf'
 type ViewerId = 'viewer-a' | 'viewer-b' | 'viewer-c'
 
 /** Creates a viewer for `file` and mounts it in the element with `id`. */
-function mount(page: Page, id: ViewerId, file: string, options: Record<string, unknown> = {}) {
+function mount(page: Page, id: ViewerId, file: unknown, options: Record<string, unknown> = {}) {
   return page.evaluate(([id, file, options]) => void window.testkit.mount(id, file, options), [
     id,
     file,
@@ -278,6 +278,223 @@ test.describe('setFile', () => {
 
     expect(await state(page, 'viewer-a')).toMatchObject({ url: remote, pagesCount: 2 })
     expect(await state(page, 'viewer-b')).toMatchObject({ url: remote, pagesCount: 2 })
+  })
+})
+
+type SourceKind = 'file' | 'blob' | 'arrayBuffer' | 'uint8Array'
+
+const CROSS_ORIGIN_ERROR =
+  'This feature needs the viewer (viewerPath) to be served from the same origin as the page.'
+
+/** Like `mount`, with the PDF at `path` given as `kind` (built in the page: it cannot be serialized). */
+function mountSource(
+  page: Page,
+  id: ViewerId,
+  kind: SourceKind,
+  path: string,
+  options: Record<string, unknown> = {}
+) {
+  return page.evaluate(
+    async ([id, kind, path, options]) =>
+      void window.testkit.mount(id, await window.testkit.source(kind, path), options),
+    [id, kind, path, options] as const
+  )
+}
+
+/** Like `call(page, id, 'setFile', ...)`, with the PDF at `path` given as `kind`. */
+function setFileSource(page: Page, id: ViewerId, kind: SourceKind, path: string) {
+  return page.evaluate(
+    async ([id, kind, path]) => {
+      try {
+        const source = await window.testkit.source(kind, path)
+        return { value: await window.testkit.viewers[id].setFile(source) }
+      } catch (error) {
+        return { error: { name: error.name, message: error.message } }
+      }
+    },
+    [id, kind, path] as const
+  )
+}
+
+test.describe('file sources', () => {
+  for (const kind of ['file', 'blob', 'arrayBuffer', 'uint8Array'] as const) {
+    test(`opens a PDF given as ${kind}`, async ({ page }) => {
+      await mountSource(page, 'viewer-a', kind, TRACEMONKEY, { page: 3 })
+      await mount(page, 'viewer-b', PLACEHOLDER)
+      await waitForLoads(page, 'viewer-a')
+      await waitForLoads(page, 'viewer-b')
+
+      await expect.poll(() => state(page, 'viewer-a')).toMatchObject({ pagesCount: 14, page: 3 })
+      await expect(spinner(page, 'viewer-a')).toBeHidden()
+
+      await markFrame(page, 'viewer-b')
+      expect(await setFileSource(page, 'viewer-b', kind, TRACEMONKEY)).toEqual({ value: undefined })
+      expect(await state(page, 'viewer-b')).toMatchObject({ pagesCount: 14, marker: 'viewer-b' })
+      await expect(spinner(page, 'viewer-b')).toBeHidden()
+    })
+  }
+
+  test('uses the name of a File for the download', async ({ page }) => {
+    await mountSource(page, 'viewer-a', 'file', PLACEHOLDER)
+    await waitForLoads(page, 'viewer-a')
+
+    const filename = await page.evaluate(
+      async () => (await window.testkit.viewers['viewer-a'].getApplication())._docFilename
+    )
+    expect(filename).toBe('Placeholder-PDF.pdf')
+  })
+
+  test('opens a Blob fetched from a URL that does not end with .pdf', async ({ page }) => {
+    // An API that returns the PDF with a generic content type.
+    await page.route('**/api/reports/*', async (route) => {
+      const pdf = new URL(route.request().url()).pathname.endsWith('/1') ? PLACEHOLDER : TRACEMONKEY
+      const response = await route.fetch({ url: new URL(pdf, page.url()).href })
+      await route.fulfill({
+        body: await response.body(),
+        contentType: 'application/octet-stream',
+      })
+    })
+
+    await page.evaluate(async () => {
+      const response = await fetch('/api/reports/1')
+      window.testkit.mount('viewer-a', await response.blob())
+    })
+    await waitForLoads(page, 'viewer-a')
+    expect(await state(page, 'viewer-a')).toMatchObject({ pagesCount: 2 })
+
+    const result = await page.evaluate(async () => {
+      const response = await fetch('/api/reports/2')
+      return window.testkit.viewers['viewer-a'].setFile(await response.blob())
+    })
+    expect(result).toBeUndefined()
+    expect(await state(page, 'viewer-a')).toMatchObject({ pagesCount: 14 })
+  })
+
+  test('opens the File picked in an <input type="file">', async ({ page }) => {
+    await mount(page, 'viewer-a', PLACEHOLDER)
+    await waitForLoads(page, 'viewer-a')
+    await page.evaluate(() => {
+      const input = document.createElement('input')
+      input.type = 'file'
+      input.id = 'pdf-file'
+      input.addEventListener('change', () => {
+        ;(window as any).picked = window.testkit.viewers['viewer-a'].setFile(input.files![0])
+      })
+      document.body.append(input)
+    })
+
+    await page.locator('#pdf-file').setInputFiles('web/compressed.tracemonkey-pldi-09.pdf')
+    await page.waitForFunction(() => (window as any).picked)
+    expect(await page.evaluate(() => (window as any).picked)).toBeUndefined()
+
+    const app = await page.evaluate(async () => {
+      const app = await window.testkit.viewers['viewer-a'].getApplication()
+      return { pagesCount: app.pagesCount, filename: app._docFilename }
+    })
+    expect(app).toEqual({ pagesCount: 14, filename: 'compressed.tracemonkey-pldi-09.pdf' })
+  })
+
+  test('leaves the bytes passed by the caller untouched', async ({ page }) => {
+    await page.evaluate(async (path) => {
+      const bytes = await window.testkit.source('uint8Array', path)
+      ;(window as any).bytes = bytes
+      window.testkit.mount('viewer-a', bytes)
+    }, PLACEHOLDER)
+    await waitForLoads(page, 'viewer-a')
+
+    const result = await page.evaluate(async () => {
+      const bytes: Uint8Array = (window as any).bytes
+      const before = bytes.byteLength
+      await window.testkit.viewers['viewer-a'].setFile(bytes)
+      return { before, after: bytes.byteLength }
+    })
+    expect(result.before).toBeGreaterThan(0)
+    expect(result.after).toBe(result.before)
+    expect(await loads(page, 'viewer-a')).toHaveLength(2)
+  })
+
+  test('throws right away for unsupported sources', async ({ page }) => {
+    const errors = await page.evaluate(() => {
+      const messages: string[] = []
+      for (const source of [
+        42,
+        null,
+        { url: '/example/Placeholder-PDF.pdf' },
+        new Uint16Array([1, 2]),
+        new DataView(new ArrayBuffer(1)),
+        '',
+        'JVBERi0 not base64!',
+        'data:application/pdf;base64,JVBERi0',
+      ]) {
+        try {
+          window.testkit.create(source)
+          messages.push('no error')
+        } catch (error) {
+          messages.push(error.message)
+        }
+      }
+      return messages
+    })
+
+    expect(errors).toEqual([
+      'Unsupported PDF source.',
+      'Source PDF URL is required.',
+      'Unsupported PDF source.',
+      'Unsupported PDF source.',
+      'Unsupported PDF source.',
+      'Source PDF URL is required.',
+      'Only PDF files are supported.',
+      'Only PDF files are supported.',
+    ])
+  })
+
+  test('rejects bytes that are not a PDF', async ({ page }) => {
+    await mount(page, 'viewer-a', PLACEHOLDER)
+    await waitForLoads(page, 'viewer-a')
+
+    const result = await page.evaluate(async () => {
+      try {
+        await window.testkit.viewers['viewer-a'].setFile(new Uint8Array([1, 2, 3]))
+        return 'no error'
+      } catch (error) {
+        return error.message
+      }
+    })
+    expect(result).not.toBe('no error')
+    await expect(spinner(page, 'viewer-a')).toBeHidden()
+  })
+
+  test('bytes need a viewer on the same origin', async ({ page }) => {
+    // Serve the viewer from another origin, backed by the test server.
+    const viewerOrigin = 'http://viewer.test'
+    await page.route(`${viewerOrigin}/**`, async (route) => {
+      const { pathname, search } = new URL(route.request().url())
+      const response = await route.fetch({ url: new URL(pathname + search, page.url()).href })
+      await route.fulfill({ response })
+    })
+    const requested: string[] = []
+    page.on('request', (request) => requested.push(request.url()))
+
+    await mountSource(page, 'viewer-a', 'uint8Array', PLACEHOLDER, {
+      viewerPath: `${viewerOrigin}/dist/web/viewer.html`,
+    })
+    await expect
+      .poll(() => events(page, 'viewer-a'))
+      .toEqual([{ type: 'error', message: CROSS_ORIGIN_ERROR }])
+    await expect(spinner(page, 'viewer-a')).toBeHidden()
+
+    expect(await setFileSource(page, 'viewer-a', 'uint8Array', PLACEHOLDER)).toEqual({
+      error: { name: 'Error', message: CROSS_ORIGIN_ERROR },
+    })
+    await expect(spinner(page, 'viewer-a')).toBeHidden()
+
+    // Plain URLs still work there.
+    expect(await call(page, 'viewer-a', 'setFile', `${viewerOrigin}${PLACEHOLDER}`)).toEqual({
+      value: undefined,
+    })
+    await expect(viewerFrame(page, 'viewer-a').locator('#viewer .page')).toHaveCount(2)
+    // The viewer started empty instead of opening the PDF.js sample file.
+    expect(requested.some((url) => url.includes('tracemonkey'))).toBe(false)
   })
 })
 
