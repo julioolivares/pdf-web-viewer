@@ -62,7 +62,14 @@ Try it instantly — no setup required:
 
 > **[Open the playground →](https://julioolivares.github.io/pdf-web-viewer/)**
 
-The playground lives in the self-contained [`example/`](example/) folder (page, sample PDF and a prebuilt copy of the library in `example/lib/`). It is deployed as-is to GitHub Pages by [`.github/workflows/pages.yml`](.github/workflows/pages.yml).
+The playground shows the exact public API usage of the example (**Source**) and lets you edit it and run it in the preview (**Editor**, `Ctrl/⌘ + Enter`).
+
+It lives in the self-contained [`example/`](example/) folder and is deployed as-is to GitHub Pages by [`.github/workflows/pages.yml`](.github/workflows/pages.yml):
+
+- [`run.js`](example/run.js) — the example itself: the public API calls (`create` + `mount`) shown and editable in the playground.
+- [`demo.html`](example/demo.html) — minimal host page that loads the library and `run.js`.
+- [`index.html`](example/index.html) + [`playground.js`](example/playground.js) — the playground UI (source view, editor and preview).
+- `Placeholder-PDF.pdf` and a prebuilt copy of the library in `example/lib/`.
 
 To run it locally:
 

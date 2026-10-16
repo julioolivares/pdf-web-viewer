@@ -1,34 +1,67 @@
 ﻿<!doctype html>
-<html lang="es">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PDF Web Viewer · Playground</title>
     <meta
       name="description"
-      content="Ejemplo en vivo de pdf-web-viewer, un envoltorio ligero sobre el visor oficial de PDF.js."
+      content="pdf-web-viewer playground: explore the example code, edit it and run it live."
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
     />
     <style>
       :root {
         --bg: #f6f7f9;
         --surface: #ffffff;
+        --code-bg: #f6f8fa;
         --text: #1f2328;
         --muted: #59636e;
         --border: #d1d9e0;
         --accent: #0969da;
+        --accent-text: #ffffff;
+        --selection: #b6d5f8;
+        --danger-bg: #ffebe9;
+        --danger-text: #82071e;
+        --warn-bg: #fff8c5;
+        --warn-text: #7d4e00;
+        --tok-keyword: #cf222e;
+        --tok-string: #0a3069;
+        --tok-comment: #6e7781;
+        --tok-tag: #116329;
+        --tok-attr: #0550ae;
+        --tok-prop: #8250df;
       }
       @media (prefers-color-scheme: dark) {
         :root {
           --bg: #0d1117;
           --surface: #151b23;
+          --code-bg: #0d1117;
           --text: #e6edf3;
           --muted: #9198a1;
           --border: #3d444d;
           --accent: #4493f8;
+          --accent-text: #0d1117;
+          --selection: #264f78;
+          --danger-bg: #3c1618;
+          --danger-text: #ffa198;
+          --warn-bg: #3b2e05;
+          --warn-text: #e3b341;
+          --tok-keyword: #ff7b72;
+          --tok-string: #a5d6ff;
+          --tok-comment: #8b949e;
+          --tok-tag: #7ee787;
+          --tok-attr: #79c0ff;
+          --tok-prop: #d2a8ff;
         }
       }
       * {
         box-sizing: border-box;
+      }
+      [hidden] {
+        display: none !important;
       }
       html,
       body {
@@ -78,37 +111,294 @@
       nav a:hover {
         text-decoration: underline;
       }
-      main {
+
+      .workspace {
         flex: 1;
         min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+        gap: 16px;
         padding: 16px;
       }
-      .pdf-container {
-        width: 100%;
-        height: 100%;
-        min-height: 480px;
+      .panel {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 8px;
         overflow: hidden;
       }
+      .panel-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .panel-bar h2 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        font-size: 0.875rem;
+      }
+      .actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 12px;
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        color: var(--text);
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .btn:hover {
+        border-color: var(--muted);
+      }
+      .btn-primary {
+        color: var(--accent-text);
+        background: var(--accent);
+        border-color: var(--accent);
+      }
+      .btn-primary:hover {
+        border-color: var(--accent);
+        filter: brightness(1.08);
+      }
+      .segmented {
+        display: inline-flex;
+        padding: 2px;
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      .segmented button {
+        padding: 4px 12px;
+        font: inherit;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        background: transparent;
+        border: 0;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .segmented button[aria-selected='true'] {
+        color: var(--text);
+        background: var(--surface);
+        box-shadow: 0 0 0 1px var(--border);
+      }
+      .file-tabs {
+        display: flex;
+        padding: 0 8px;
+        background: var(--code-bg);
+        border-bottom: 1px solid var(--border);
+      }
+      .file-tab {
+        padding: 8px 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.8125rem;
+        color: var(--text);
+        border-bottom: 2px solid var(--accent);
+      }
+      .file-tab.modified::after {
+        content: ' ●';
+        color: var(--warn-text);
+      }
+      .pill {
+        padding: 1px 8px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--muted);
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+      }
+      .pill.edited {
+        color: var(--warn-text);
+        background: var(--warn-bg);
+        border-color: transparent;
+      }
+      .hint {
+        margin: 0;
+        padding: 8px 12px;
+        font-size: 0.8125rem;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+      }
+      .hint code {
+        font-size: 0.75rem;
+      }
+      .error-bar {
+        margin: 0;
+        padding: 8px 12px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.8125rem;
+        color: var(--danger-text);
+        background: var(--danger-bg);
+        border-bottom: 1px solid var(--border);
+        white-space: pre-wrap;
+      }
+
+      .editor {
+        flex: 1;
+        min-height: 0;
+      }
+      .editor .CodeMirror {
+        height: 100%;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--text);
+        background: var(--code-bg);
+      }
+      .editor .CodeMirror-gutters {
+        background: var(--code-bg);
+        border-right: 1px solid var(--border);
+      }
+      .editor .CodeMirror-linenumber {
+        color: var(--muted);
+      }
+      .editor .CodeMirror-cursor {
+        border-left-color: var(--text);
+      }
+      .editor .CodeMirror-selected,
+      .editor .CodeMirror-focused .CodeMirror-selected {
+        background: var(--selection);
+      }
+      .editor.readonly .CodeMirror-cursors {
+        visibility: hidden;
+      }
+      .editor .cm-keyword {
+        color: var(--tok-keyword);
+      }
+      .editor .cm-string,
+      .editor .cm-string-2 {
+        color: var(--tok-string);
+      }
+      .editor .cm-comment,
+      .editor .cm-meta {
+        color: var(--tok-comment);
+      }
+      .editor .cm-tag,
+      .editor .cm-bracket {
+        color: var(--tok-tag);
+      }
+      .editor .cm-attribute,
+      .editor .cm-number,
+      .editor .cm-atom,
+      .editor .cm-def {
+        color: var(--tok-attr);
+      }
+      .editor .cm-property,
+      .editor .cm-qualifier {
+        color: var(--tok-prop);
+      }
+      .editor .cm-variable,
+      .editor .cm-variable-2 {
+        color: var(--text);
+      }
+      .editor-message {
+        margin: 0;
+        padding: 16px;
+        font-size: 0.875rem;
+        color: var(--danger-text);
+      }
+
+      .preview {
+        flex: 1;
+        width: 100%;
+        min-height: 0;
+        border: 0;
+        background: var(--surface);
+      }
+
+      @media (max-width: 900px) {
+        html,
+        body {
+          height: auto;
+        }
+        .workspace {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .code-panel {
+          height: 460px;
+        }
+        .preview-panel {
+          height: 80vh;
+          min-height: 480px;
+        }
+      }
     </style>
-    <script src="lib/index.umd.js"></script>
-    <script src="run.js"></script>
   </head>
   <body>
     <header>
       <div>
         <h1>📄 PDF Web Viewer</h1>
-        <p>Un envoltorio ligero sobre el visor oficial de PDF.js.</p>
+        <p>Explore the example code, edit it and run it live.</p>
       </div>
       <nav>
         <a href="https://github.com/julioolivares/pdf-web-viewer">GitHub</a>
         <a href="https://www.npmjs.com/package/pdf-web-viewer">npm</a>
       </nav>
     </header>
-    <main>
-      <div class="pdf-container"></div>
+    <main class="workspace">
+      <section class="panel code-panel" aria-label="Code">
+        <div class="panel-bar">
+          <div class="segmented" role="tablist" aria-label="Mode">
+            <button type="button" role="tab" data-mode="source" aria-selected="true">
+              Source
+            </button>
+            <button type="button" role="tab" data-mode="edit" aria-selected="false">
+              Editor
+            </button>
+          </div>
+          <div class="actions">
+            <button type="button" class="btn" data-action="copy">Copy</button>
+            <button type="button" class="btn" data-action="reset" hidden>Reset</button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-action="run"
+              title="Ctrl/⌘ + Enter"
+              hidden
+            >
+              ▶ Run
+            </button>
+          </div>
+        </div>
+        <div class="file-tabs">
+          <span class="file-tab" id="file-tab">run.js</span>
+        </div>
+        <div class="editor readonly" id="editor"></div>
+        <p class="hint" id="hint"></p>
+      </section>
+      <section class="panel preview-panel" aria-label="Preview">
+        <div class="panel-bar">
+          <h2>Preview <span class="pill" id="preview-status">Original</span></h2>
+          <a class="btn" href="demo.html" target="_blank" rel="noopener">Open original ↗</a>
+        </div>
+        <p class="error-bar" id="preview-error" hidden></p>
+        <iframe class="preview" id="preview" title="Example preview" src="demo.html"></iframe>
+      </section>
     </main>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="playground.js"></script>
   </body>
 </html>
