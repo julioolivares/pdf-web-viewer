@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>pdf-web-viewer tests</title>
+    <style>
+      body {
+        margin: 0;
+        display: grid;
+        grid-template-columns: repeat(3, 400px);
+        gap: 16px;
+        padding: 16px;
+      }
+      .viewer {
+        height: 500px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewer-a" class="viewer"></div>
+    <div id="viewer-b" class="viewer"></div>
+    <div id="viewer-c" class="viewer"></div>
+
+    <script type="module">
+      import { create } from '/dist/index.mjs'
+
+      // Creates viewers from the tests and records their events, keyed by container id.
+      window.testkit = {
+        create,
+        viewers: {},
+        events: {},
+        mount(id, file, options = {}) {
+          const events = (this.events[id] = [])
+          const viewer = create(file, {
+            viewerPath: '/dist/web/viewer.html',
+            ...options,
+            onLoad: (info) => events.push({ type: 'load', ...info }),
+            onPageChange: (info) => events.push({ type: 'page', ...info }),
+            onError: (error) => events.push({ type: 'error', message: error.message }),
+          })
+          viewer.mount(document.getElementById(id))
+          this.viewers[id] = viewer
+          return viewer
+        },
+      }
+    </script>
+  </body>
+</html>

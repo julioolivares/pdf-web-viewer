@@ -571,6 +571,9 @@ class PdfWebViewer {
       throw new RangeError('Zoom percentage must be a positive number.')
     }
     const app = await this.requireDocument()
+    // PDF.js keeps the position it recorded on the last scroll event; refresh it now so a zoom
+    // right after `goToPage` stays on that page instead of jumping back.
+    app.pdfViewer.update()
     if (typeof zoom === 'number') {
       app.pdfViewer.currentScale = zoom / 100
     } else {

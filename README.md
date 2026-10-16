@@ -162,6 +162,15 @@ const options: PdfWebViewerOptions = { locale: 'es-ES' }
 
 `Locale` lists every language bundled with the viewer, so editors autocomplete the valid `locale` values.
 
+## 🧪 Tests
+
+End-to-end tests run the built package in Chromium and Firefox with [Playwright](https://playwright.dev/):
+
+```bash
+npx playwright install chromium firefox   # once
+pnpm test                                 # builds, then runs test/*.spec.ts
+```
+
 ## 🔧 Updating PDF.js
 
 The viewer in `build/` and `web/` comes from the official PDF.js release zip, because the `pdfjs-dist` npm package does not include the viewer app. `pdfjs-dist` is a dev dependency only to pin the version:
