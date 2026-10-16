@@ -8,10 +8,6 @@
       name="description"
       content="pdf-web-viewer playground: explore the example code, edit it and run it live."
     />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css"
-    />
     <style>
       :root {
         --bg: #f6f7f9;
@@ -22,17 +18,10 @@
         --border: #d1d9e0;
         --accent: #0969da;
         --accent-text: #ffffff;
-        --selection: #b6d5f8;
         --danger-bg: #ffebe9;
         --danger-text: #82071e;
         --warn-bg: #fff8c5;
         --warn-text: #7d4e00;
-        --tok-keyword: #cf222e;
-        --tok-string: #0a3069;
-        --tok-comment: #6e7781;
-        --tok-tag: #116329;
-        --tok-attr: #0550ae;
-        --tok-prop: #8250df;
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -44,17 +33,10 @@
           --border: #3d444d;
           --accent: #4493f8;
           --accent-text: #0d1117;
-          --selection: #264f78;
           --danger-bg: #3c1618;
           --danger-text: #ffa198;
           --warn-bg: #3b2e05;
           --warn-text: #e3b341;
-          --tok-keyword: #ff7b72;
-          --tok-string: #a5d6ff;
-          --tok-comment: #8b949e;
-          --tok-tag: #7ee787;
-          --tok-attr: #79c0ff;
-          --tok-prop: #d2a8ff;
         }
       }
       * {
@@ -254,60 +236,7 @@
       .editor {
         flex: 1;
         min-height: 0;
-      }
-      .editor .CodeMirror {
-        height: 100%;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        font-size: 13px;
-        line-height: 1.5;
-        color: var(--text);
         background: var(--code-bg);
-      }
-      .editor .CodeMirror-gutters {
-        background: var(--code-bg);
-        border-right: 1px solid var(--border);
-      }
-      .editor .CodeMirror-linenumber {
-        color: var(--muted);
-      }
-      .editor .CodeMirror-cursor {
-        border-left-color: var(--text);
-      }
-      .editor .CodeMirror-selected,
-      .editor .CodeMirror-focused .CodeMirror-selected {
-        background: var(--selection);
-      }
-      .editor.readonly .CodeMirror-cursors {
-        visibility: hidden;
-      }
-      .editor .cm-keyword {
-        color: var(--tok-keyword);
-      }
-      .editor .cm-string,
-      .editor .cm-string-2 {
-        color: var(--tok-string);
-      }
-      .editor .cm-comment,
-      .editor .cm-meta {
-        color: var(--tok-comment);
-      }
-      .editor .cm-tag,
-      .editor .cm-bracket {
-        color: var(--tok-tag);
-      }
-      .editor .cm-attribute,
-      .editor .cm-number,
-      .editor .cm-atom,
-      .editor .cm-def {
-        color: var(--tok-attr);
-      }
-      .editor .cm-property,
-      .editor .cm-qualifier {
-        color: var(--tok-prop);
-      }
-      .editor .cm-variable,
-      .editor .cm-variable-2 {
-        color: var(--text);
       }
       .editor-message {
         margin: 0;
@@ -381,7 +310,7 @@
         <div class="file-tabs">
           <span class="file-tab" id="file-tab">run.js</span>
         </div>
-        <div class="editor readonly" id="editor"></div>
+        <div class="editor" id="editor"></div>
         <p class="hint" id="hint"></p>
       </section>
       <section class="panel preview-panel" aria-label="Preview">
@@ -394,11 +323,7 @@
       </section>
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.52.2/min/vs/loader.js"></script>
     <script src="playground.js"></script>
   </body>
 </html>

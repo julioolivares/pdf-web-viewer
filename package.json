@@ -26,7 +26,7 @@
     "build:dev": "rm -rf dist && rollup -c rollup.config.js --environment NODE_ENV:development && pnpm build:pack && pnpm build:cp",
     "build:pack": "cp -rf ./web/ build/ dist/",
     "build:cp": "mkdir -p ./node_modules/pdf-web-viewer && cp -rf web/ build/ dist/ ./node_modules/pdf-web-viewer",
-    "build:example": "pnpm build && rm -rf example/lib && mkdir -p example/lib && cp -rf dist/index.umd.js dist/web dist/build example/lib/ && rm -f example/lib/build/*.map example/lib/web/compressed.tracemonkey-pldi-09.pdf",
+    "build:example": "pnpm build && rm -rf example/lib && mkdir -p example/lib && cp -rf dist/index.umd.js dist/index.d.ts dist/web dist/build example/lib/ && rm -f example/lib/build/*.map example/lib/web/compressed.tracemonkey-pldi-09.pdf",
     "dev": "live-server --port=6789 --open=./index.html --watch=dist",
     "dev:example": "live-server ./example --port=6790",
     "prettier": "prettier --write ./src"

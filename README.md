@@ -1,142 +1,123 @@
 # 📄 PDF Web Viewer
 
-PDF Web Viewer is a lightweight wrapper around the official PDF.js viewer for simple PDF previews in web apps. The project exposes a small API to create a viewer instance and mount it into your page.
+Embed a full-featured PDF viewer in any web page with two lines of code.
 
-## 🚀 Quick Start
+PDF Web Viewer wraps the official [PDF.js](https://mozilla.github.io/pdf.js/) viewer (toolbar, thumbnails, search, zoom, print and download) in a small API: create a viewer for a PDF, mount it into an element, and switch files when you need to. No framework required.
 
-1. Add a container to your HTML document where the viewer will be mounted:
-
-   ```html
-   <div class="pdf-container"></div>
-   ```
-
-2. Install the package (if published to a registry):
-
-   ```bash
-   pnpm add pdf-web-viewer
-   # or
-   npm install pdf-web-viewer
-   # or
-   yarn add pdf-web-viewer
-   ```
-
-3. Use the library according to your project type.
-
-   #### ESM Projects
-
-   ```js
-   import { create } from 'pdf-web-viewer'
-
-   const container = document.querySelector('div.pdf-container')
-
-   // Option A: relative path (resolved against location.origin)
-   const viewer = create('/assets/sample.pdf', { width: '800px', height: '600px' })
-   viewer.mount(container)
-
-   // Option B: absolute URL
-   const viewer = create('https://example.com/files/document.pdf', {
-     width: '100%',
-     height: '100%',
-   })
-   viewer.mount(container)
-   ```
-
-   #### Non-ESM Projects
-
-   If you build a UMD bundle that exposes a `PdfViewer` global, use it like:
-
-   ```html
-   <script src="node_modules/pdf-web-viewer/dist/index.umd.js"></script>
-   <script>
-     window.onload = function () {
-       // Accepts a relative path or an absolute URL (http/https)
-       const viewer = PdfViewer.create('/assets/sample.pdf')
-       viewer.mount(document.querySelector('div.pdf-container'))
-     }
-   </script>
-   ```
-
-## ▶️ Live Demo
-
-Try it instantly — no setup required:
-
-> **[Open the playground →](https://julioolivares.github.io/pdf-web-viewer/)**
-
-The playground shows the exact public API usage of the example (**Source**) and lets you edit it and run it in the preview (**Editor**, `Ctrl/⌘ + Enter`).
-
-It lives in the self-contained [`example/`](example/) folder and is deployed as-is to GitHub Pages by [`.github/workflows/pages.yml`](.github/workflows/pages.yml):
-
-- [`run.js`](example/run.js) — the example itself: the public API calls (`create` + `mount`) shown and editable in the playground.
-- [`demo.html`](example/demo.html) — minimal host page that loads the library and `run.js`.
-- [`index.html`](example/index.html) + [`playground.js`](example/playground.js) — the playground UI (source view, editor and preview).
-- `Placeholder-PDF.pdf` and a prebuilt copy of the library in `example/lib/`.
-
-To run it locally:
-
-```bash
-pnpm install
-pnpm dev:example   # serves ./example at http://localhost:6790
-```
-
-After changing the library, refresh the prebuilt copy and commit it:
-
-```bash
-pnpm build:example
-```
-
-## 🎥 Gif Demo
+> **[Try it in the playground →](https://julioolivares.github.io/pdf-web-viewer/)**
 
 ![Demo](fixtures/videopdf-web-viewer-ezgif.com-video-to-gif-converter.gif)
 
-## 🛠️ API Overview
+## 📦 Installation
 
-### `create(filePath: string, options?: { width?: string; height?: string; displayPagePanel?: boolean; viewerPath?: string; locale?: string }): PdfWebViewer`
+```bash
+npm install pdf-web-viewer
+# or
+pnpm add pdf-web-viewer
+# or
+yarn add pdf-web-viewer
+```
 
-Creates a viewer instance and returns it. The instance exposes the `mount` and `setFile` methods.
+## 🚀 Usage
 
-- `filePath` (string): Path or URL of the PDF file to display. Two formats are accepted:
-  - **Relative path** — e.g. `'/assets/sample.pdf'`. Resolved to an absolute URL using `location.origin`.
-  - **Absolute URL** — e.g. `'https://example.com/files/document.pdf'`. Used directly (URL-encoded before being passed to the viewer).
+Add a container where the viewer will be displayed:
 
-  The value must end with `.pdf` (case-insensitive), otherwise an `Error` is thrown.
+```html
+<div class="pdf-container" style="height: 600px"></div>
+```
 
-- `options` (optional):
-  - `width` (string) — width of the PDF viewer; default: `100%`.
-  - `height` (string) — height of the PDF viewer; default: `100%`.
-  - `displayPagePanel` (boolean) — when `true`, opens the viewer with the thumbnail panel visible; default: `false`.
-  - `viewerPath` (string) — path or URL of the bundled PDF.js `viewer.html`. Relative paths are resolved against `document.baseURI`. Use it when the files are not served from `/node_modules/pdf-web-viewer/dist/web/viewer.html` at the site root (e.g. a GitHub Pages project site or a production bundle); default: `` `${location.origin}/node_modules/pdf-web-viewer/dist/web/viewer.html` ``. The viewer must be served from the same origin as the PDF.
+### ES modules
 
-    ```js
-    const viewer = create(new URL('assets/sample.pdf', document.baseURI).href, {
-      viewerPath: 'vendor/pdf-web-viewer/web/viewer.html',
-    })
-    ```
+```js
+import { create } from 'pdf-web-viewer'
 
-  - `locale` (string) — language of the viewer UI (toolbar, menus, tooltips), e.g. `'es-ES'`, `'fr'`, `'de'`. Must match one of the folders in `web/locale/`; unknown values fall back to English. Default: the browser language (`navigator.language`).
+const viewer = create('/assets/sample.pdf')
+viewer.mount(document.querySelector('.pdf-container'))
+```
 
-    ```js
-    const viewer = create('/assets/sample.pdf', { locale: 'es-ES' })
-    ```
+### Script tag
 
-#### Methods
+The UMD bundle exposes a `PdfViewer` global:
 
-- `mount(targetElement: HTMLElement): void`
-  - Adds the PDF viewer into `targetElement`. Throws an `Error` if `targetElement` is not provided.
+```html
+<script src="node_modules/pdf-web-viewer/dist/index.umd.js"></script>
+<script>
+  window.onload = () => {
+    const viewer = PdfViewer.create('/assets/sample.pdf')
+    viewer.mount(document.querySelector('.pdf-container'))
+  }
+</script>
+```
 
-- `setFile(filePath: string): void`
-  - Updates the viewer to load a new PDF. Accepts the same relative paths and absolute URLs (`http`/`https`) as `create`. The `filePath` must be provided and must end with `.pdf`, otherwise an `Error` is thrown.
+### Serving the viewer files
 
-## Error handling
+The viewer runs from the PDF.js files shipped in the package (`dist/web/` and `dist/build/`). By default it loads them from `/node_modules/pdf-web-viewer/dist/web/viewer.html` at your site root.
 
-- `create` and `setFile` will throw an `Error` if the provided `filePath` is missing or does not end with `.pdf`.
-- `mount` will throw if a valid mount target is not provided.
+If your app does not serve `node_modules` (for example, a production bundle), copy both folders, side by side, into your public assets and point `viewerPath` to them:
 
-> **Note on CORS:** when using absolute URLs pointing to a different origin, the remote server must allow cross-origin requests, otherwise the browser will block the PDF from loading.
+```js
+const viewer = create('/assets/sample.pdf', {
+  viewerPath: '/vendor/pdf-web-viewer/web/viewer.html',
+})
+```
 
-## 📚 Additional resources
+## 🛠️ API
 
-For advanced usage and detailed API references, see the [official PDF.js documentation](https://mozilla.github.io/pdf.js/).
+### `create(filePath, options?)`
+
+Creates a viewer for the given PDF and returns a `PdfWebViewer` instance.
+
+- **`filePath`** (`string`) — the PDF to display. It must end with `.pdf`.
+  - **Relative path**, e.g. `'/assets/sample.pdf'`, resolved from your site root.
+  - **Absolute URL**, e.g. `'https://example.com/files/document.pdf'`. The server hosting it must allow CORS requests from your site.
+- **`options`** (`PdfWebViewerOptions`, optional):
+
+| Option             | Type      | Default                                               | Description                                                                                        |
+| ------------------ | --------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `width`            | `string`  | `'100%'`                                              | Width of the viewer (any CSS length).                                                              |
+| `height`           | `string`  | `'100%'`                                              | Height of the viewer (any CSS length).                                                             |
+| `displayPagePanel` | `boolean` | `false`                                               | Opens the viewer with the page thumbnails panel visible.                                           |
+| `viewerPath`       | `string`  | `'/node_modules/pdf-web-viewer/dist/web/viewer.html'` | Path or URL of the bundled `viewer.html`. Relative paths are resolved against the current page.    |
+| `locale`           | `Locale`  | Browser language                                      | Language of the viewer UI, e.g. `'en-US'`, `'es-ES'`, `'fr'`. Unknown values fall back to English. |
+
+```js
+const viewer = create('https://example.com/files/document.pdf', {
+  width: '100%',
+  height: '600px',
+  displayPagePanel: true,
+  locale: 'es-ES',
+})
+```
+
+### `viewer.mount(targetElement)`
+
+Inserts the viewer into `targetElement` (`HTMLElement`). Calling it again on a mounted viewer has no effect.
+
+### `viewer.setFile(filePath)`
+
+Loads a different PDF in the same viewer. Accepts the same values as `filePath` in `create`.
+
+```js
+viewer.setFile('/assets/another.pdf')
+```
+
+### Errors
+
+- `create` and `setFile` throw an `Error` when `filePath` is missing or does not end with `.pdf`.
+- `mount` throws an `Error` when no target element is provided.
+
+## 🧩 TypeScript
+
+Type declarations are included. Besides `create`, the package exports the option types:
+
+```ts
+import { create, type PdfWebViewerOptions, type Locale } from 'pdf-web-viewer'
+
+const options: PdfWebViewerOptions = { locale: 'es-ES' }
+```
+
+`Locale` lists every language bundled with the viewer, so editors autocomplete the valid `locale` values.
 
 ## 🙏 Acknowledgments
 
-Thanks to the Mozilla team and the PDF.js project for their excellent work and for providing a robust viewer that this package builds on.
+Thanks to the Mozilla team and the [PDF.js](https://mozilla.github.io/pdf.js/) project for the viewer this package builds on.

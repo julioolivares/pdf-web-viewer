@@ -61,7 +61,8 @@ module.exports = [
         input: './src/index.ts',
         output: {
             file: 'dist/index.d.ts',
-            format: 'es'
+            format: 'es',
+            footer: 'export as namespace PdfViewer;'
         },
         plugins: [dts({
             respectExternal: false

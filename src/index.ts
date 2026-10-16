@@ -1,5 +1,37 @@
 import { Utils } from './utils.util'
 import { create as createLoading } from './loading'
+import type { Locale } from './locale'
+
+/**
+ * Options accepted by `create`.
+ */
+export interface PdfWebViewerOptions {
+  /**
+   * Width of the viewer iframe (any CSS length).
+   * @default '100%'
+   */
+  width?: string
+  /**
+   * Height of the viewer iframe (any CSS length).
+   * @default '100%'
+   */
+  height?: string
+  /**
+   * Open the viewer with the page thumbnails panel visible.
+   * @default false
+   */
+  displayPagePanel?: boolean
+  /**
+   * Path or URL of the bundled PDF.js `viewer.html`, resolved against `document.baseURI`.
+   * @default `${location.origin}/node_modules/pdf-web-viewer/dist/web/viewer.html`
+   */
+  viewerPath?: string
+  /**
+   * Language of the viewer UI, e.g. 'en-US' or 'es-ES'. Unknown values fall back to English.
+   * @default navigator.language
+   */
+  locale?: Locale | (string & {})
+}
 
 /**
  * Class for previewing PDF files using an iframe and the PDF.js viewer.
@@ -120,7 +152,7 @@ class PdfWebViewer {
    * @param {string} [options.locale] - Language of the viewer UI (e.g. 'es-ES'). Defaults to the browser language.
    * @private
    */
-  private constructor(filePath: string, options?: { width?: string; height?: string, displayPagePanel?: boolean, viewerPath?: string, locale?: string }) {
+  private constructor(filePath: string, options?: PdfWebViewerOptions) {
     if (!/\.pdf($|[?#])/i.test(filePath)) {
       throw new Error('Only PDF files are supported.')
     }
@@ -172,7 +204,7 @@ class PdfWebViewer {
    */
   static getInstance(
     filePath: string,
-    options?: { width?: string; height?: string, displayPagePanel?: boolean, viewerPath?: string, locale?: string }
+    options?: PdfWebViewerOptions
   ): PdfWebViewer {
     this.instance = new PdfWebViewer(filePath, options)
     return this.instance
@@ -223,3 +255,4 @@ class PdfWebViewer {
 const create = PdfWebViewer.getInstance
 
 export { create }
+export type { Locale }
