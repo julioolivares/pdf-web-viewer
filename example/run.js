@@ -5,7 +5,7 @@ const pdfUrl = new URL('Placeholder-PDF.pdf', document.baseURI).href
 const visorPdf = PdfViewer.create(pdfUrl, {
   displayPagePanel: true,
   viewerPath: 'lib/web/viewer.html',
-  locale: 'es-ES',
+  locale: 'en-US',
 })
 
 window.onload = () => {
