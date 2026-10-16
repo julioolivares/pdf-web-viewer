@@ -11,9 +11,12 @@ class LoadingIndicator {
     this.loadingElement.style.padding = '0'
     this.loadingElement.style.width = '80px'
     this.loadingElement.style.height = '80px'
-    this.loadingElement.style.position = 'fixed'
+    // Centered inside the viewer wrapper (which is `position: relative`), not the window.
+    this.loadingElement.style.position = 'absolute'
     this.loadingElement.style.top = '50%'
     this.loadingElement.style.left = '50%'
+    this.loadingElement.style.transform = 'translate(-50%, -50%)'
+    this.loadingElement.style.pointerEvents = 'none'
     this.loadingElement.innerHTML = `
             <div style="
                 border: 8px solid #f3f3f3;

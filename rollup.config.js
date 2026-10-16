@@ -8,7 +8,8 @@ const watch = {
     clearScreen: false,
     include: 'src/**/*.ts'
 }
-const plugins = [typescript()]
+// Declarations come from rollup-plugin-dts below (dist/index.d.ts).
+const plugins = [typescript({ declaration: false })]
 const external = []
 const onwarn = (warning, warn) => {
 

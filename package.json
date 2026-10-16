@@ -15,10 +15,9 @@
     "./package.json": "./package.json"
   },
   "files": [
-    "dist/**",
-    "package.json",
-    "fixtures/**",
-    "README.md"
+    "dist",
+    "!dist/**/*.map",
+    "!dist/web/compressed.tracemonkey-pldi-09.pdf"
   ],
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -27,6 +26,7 @@
     "build:pack": "cp -rf ./web/ build/ dist/",
     "build:cp": "mkdir -p ./node_modules/pdf-web-viewer && cp -rf web/ build/ dist/ ./node_modules/pdf-web-viewer",
     "build:example": "pnpm build && rm -rf example/lib && mkdir -p example/lib && cp -rf dist/index.umd.js dist/index.d.ts dist/web dist/build example/lib/ && rm -f example/lib/build/*.map example/lib/web/compressed.tracemonkey-pldi-09.pdf",
+    "update:pdfjs": "node scripts/update-pdfjs.mjs && pnpm build:example",
     "dev": "live-server --port=6789 --open=./index.html --watch=dist",
     "dev:example": "live-server ./example --port=6790",
     "prettier": "prettier --write ./src"
@@ -66,6 +66,7 @@
     "@rollup/plugin-typescript": "12.3.0",
     "@types/node": "22.13.14",
     "live-server": "1.2.2",
+    "pdfjs-dist": "6.4.299",
     "prettier": "3.8.0",
     "rollup": "4.56.0",
     "rollup-plugin-dts": "6.3.0",

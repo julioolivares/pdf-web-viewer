@@ -2,11 +2,11 @@
 
 Embed a full-featured PDF viewer in any web page with two lines of code.
 
-PDF Web Viewer wraps the official [PDF.js](https://mozilla.github.io/pdf.js/) viewer (toolbar, thumbnails, search, zoom, print and download) in a small API: create a viewer for a PDF, mount it into an element, and switch files when you need to. No framework required.
+PDF Web Viewer wraps the official [PDF.js](https://mozilla.github.io/pdf.js/) viewer (toolbar, thumbnails, search, zoom, print and download) in a small API: create a viewer for a PDF, mount it into an element, then switch files, pages, zoom or theme without reloading the viewer. No framework required.
 
 > **[Try it in the playground →](https://julioolivares.github.io/pdf-web-viewer/)**
 
-![Demo](fixtures/videopdf-web-viewer-ezgif.com-video-to-gif-converter.gif)
+![Demo](https://raw.githubusercontent.com/julioolivares/pdf-web-viewer/main/fixtures/videopdf-web-viewer-ezgif.com-video-to-gif-converter.gif)
 
 ## 📦 Installation
 
@@ -79,6 +79,12 @@ Creates a viewer for the given PDF and returns a `PdfWebViewer` instance.
 | `displayPagePanel` | `boolean` | `false`                                               | Opens the viewer with the page thumbnails panel visible.                                           |
 | `viewerPath`       | `string`  | `'/node_modules/pdf-web-viewer/dist/web/viewer.html'` | Path or URL of the bundled `viewer.html`. Relative paths are resolved against the current page.    |
 | `locale`           | `Locale`  | Browser language                                      | Language of the viewer UI, e.g. `'en-US'`, `'es-ES'`, `'fr'`. Unknown values fall back to English. |
+| `page`             | `number`  | `1`                                                   | Page shown when the first document opens.                                                          |
+| `zoom`             | `Zoom`    | `'auto'`                                              | `'auto'`, `'page-fit'`, `'page-width'`, `'page-actual'` or a percentage such as `150`.             |
+| `theme`            | `Theme`   | `'auto'`                                              | `'auto'` (system preference), `'light'` or `'dark'`.                                               |
+| `onLoad`           | function  | —                                                     | Called with `{ pagesCount }` every time a document finishes loading.                               |
+| `onPageChange`     | function  | —                                                     | Called with `{ page, pagesCount }` when the current page changes.                                  |
+| `onError`          | function  | —                                                     | Called with an `Error` when a document fails to load.                                              |
 
 ```js
 const viewer = create('https://example.com/files/document.pdf', {
@@ -86,6 +92,8 @@ const viewer = create('https://example.com/files/document.pdf', {
   height: '600px',
   displayPagePanel: true,
   locale: 'es-ES',
+  zoom: 'page-width',
+  onPageChange: ({ page, pagesCount }) => console.log(`Page ${page} of ${pagesCount}`),
 })
 ```
 
@@ -95,28 +103,75 @@ Inserts the viewer into `targetElement` (`HTMLElement`). Calling it again on a m
 
 ### `viewer.setFile(filePath)`
 
-Loads a different PDF in the same viewer. Accepts the same values as `filePath` in `create`.
+Opens a different PDF in the running viewer, without reloading it. Accepts the same values as `filePath` in `create`. Returns a promise that resolves when the file is loaded and rejects if it fails to load.
 
 ```js
-viewer.setFile('/assets/another.pdf')
+await viewer.setFile('/assets/another.pdf')
 ```
+
+### Controlling the viewer
+
+These methods return a promise. Called before the document is ready, they wait for it.
+
+| Method                    | Description                                                                                                                                  |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `goToPage(page)`          | Scrolls to a page (1-based).                                                                                                                 |
+| `setZoom(zoom)`           | Changes the zoom: a preset such as `'page-width'` or a percentage such as `150`.                                                             |
+| `search(query, options?)` | Highlights the matches and jumps to the first one. Options: `caseSensitive`, `entireWord`, `highlightAll`. An empty query clears the search. |
+| `setPagePanel(visible)`   | Shows or hides the page thumbnails panel.                                                                                                    |
+| `setTheme(theme)`         | Switches between `'auto'`, `'light'` and `'dark'`.                                                                                           |
+| `getApplication()`        | Resolves with the PDF.js [`PDFViewerApplication`](https://github.com/mozilla/pdf.js/blob/master/web/app.js) for full control.                |
+
+```js
+await viewer.goToPage(3)
+await viewer.setZoom(150)
+await viewer.search('invoice')
+
+const app = await viewer.getApplication()
+app.eventBus.on('scalechanging', ({ scale }) => console.log(scale))
+```
+
+These methods need the viewer files to be served from the same origin as your page, which is the case by default. With a `viewerPath` on another origin, `setFile` falls back to reloading the viewer and the other methods reject.
+
+### `viewer.destroy()`
+
+Removes the viewer from the page and releases its listeners. The instance cannot be used afterwards.
 
 ### Errors
 
 - `create` and `setFile` throw an `Error` when `filePath` is missing or does not end with `.pdf`.
 - `mount` throws an `Error` when no target element is provided.
+- `goToPage` and `setZoom` reject with a `RangeError` for a page that does not exist or a zoom that is not positive.
+- Every method throws an `Error` after `destroy()`.
 
 ## 🧩 TypeScript
 
 Type declarations are included. Besides `create`, the package exports the option types:
 
 ```ts
-import { create, type PdfWebViewerOptions, type Locale } from 'pdf-web-viewer'
+import {
+  create,
+  type PdfWebViewerOptions,
+  type Locale,
+  type Zoom,
+  type Theme,
+} from 'pdf-web-viewer'
 
 const options: PdfWebViewerOptions = { locale: 'es-ES' }
 ```
 
 `Locale` lists every language bundled with the viewer, so editors autocomplete the valid `locale` values.
+
+## 🔧 Updating PDF.js
+
+The viewer in `build/` and `web/` comes from the official PDF.js release zip, because the `pdfjs-dist` npm package does not include the viewer app. `pdfjs-dist` is a dev dependency only to pin the version:
+
+```bash
+pnpm up pdfjs-dist --latest
+pnpm update:pdfjs
+```
+
+`update:pdfjs` downloads the matching release, applies the patches listed in `scripts/update-pdfjs.mjs`, regenerates the `Locale` type and rebuilds. It stops with an error if a patch no longer applies.
 
 ## 🙏 Acknowledgments
 
